@@ -7,11 +7,12 @@ This project helps a marketing operations user do two things with Marketing Clou
 
 The script is designed to be run from a terminal, but the workflow is intentionally simple:
 
-1. Run a connection check.
-2. Run an extract.
-3. Edit the exported HTML and text files.
-4. Mark the rows you want to update in the spreadsheet.
-5. Run the import.
+1. Complete setup (including Salesforce External Client Application details).
+2. Run a connection check.
+3. Run an extract.
+4. Edit the exported HTML and text files.
+5. Mark the rows you want to update in the spreadsheet.
+6. Run the import.
 
 If you have not installed Python or set up the project yet, jump to [Setup](#setup).
 
@@ -33,6 +34,8 @@ On the first run, the script will create a `.env` file from `.env-sample`, promp
 
 Use the `test-auth` command to confirm that the script has the configuration it needs and can successfully connect to Salesforce and MCAE.
 
+Before running this command, complete [Setting Up a Salesforce External Client Application](#setting-up-a-salesforce-external-client-application).
+
 Example command:
 
 ```powershell
@@ -41,7 +44,7 @@ python main.py test-auth
 
 What this command checks:
 
-1. Required values are present in `.env`.
+1. Required configuration values are present in `.env`.
 2. Salesforce OAuth works with your External Client Application.
 3. The Pardot Business Unit ID is accepted.
 4. The script can make a simple Pardot API request.
@@ -103,6 +106,34 @@ If an update fails, the script stops immediately after recording the error in th
 
 ## Setup
 
+Recommended order:
+
+1. [Install Python](#installing-python-on-mac-and-windows).
+2. [Set up your Salesforce External Client Application](#setting-up-a-salesforce-external-client-application) so you have the client ID and secret.
+3. [Download or clone this repository](#getting-the-files-from-github).
+4. [Set up the project dependencies](#setting-up-the-project).
+5. [Run test-auth](#testing-authentication-and-setup) to create/check `.env` and verify connectivity.
+
+## Setting Up a Salesforce External Client Application
+
+This script authenticates to Salesforce using an External Client Application with the Client Credentials flow.
+
+Use this guide for the Salesforce-side setup:
+
+<https://www.cyfunolabs.com/2025/11/18/calling-the-account-engagement-api-from-salesforce/>
+
+For this project, you only need to complete steps one and two from that guide.
+
+You will need these values when the script prompts you on first run:
+
+1. `SF_URL`: Your Salesforce My Domain URL, such as `https://yourorg.my.salesforce.com`
+2. `CLIENT_ID`: The External Client Application consumer key
+3. `CLIENT_SECRET`: The External Client Application consumer secret
+4. `PARDOT_BUSINESS_UNIT_ID`: Your MCAE business unit ID
+5. `PARDOT_ORG_TYPE`: Usually `production`, but use `sandbox` or `demo` if that matches your environment
+
+The first time you run the script, it will ask for those values and store them in a local `.env` file.
+
 ## Installing Python on Mac and Windows
 
 This project requires Python 3. If you do not already have it installed, use one of these approaches.
@@ -152,8 +183,22 @@ Use whichever option is easier for you.
 If you already use Git, clone the repository from a terminal:
 
 ```powershell
-git clone <repository-url>
-cd <repository-folder>
+cd Documents
+git clone https://github.com/Cyfuno-Labs/mcae-email-template-export-import.git
+cd mcae-email-template-export-import
+```
+
+Mac/Linux equivalent:
+
+```bash
+cd ~/Documents
+git clone https://github.com/Cyfuno-Labs/mcae-email-template-export-import.git
+cd mcae-email-template-export-import
+```
+
+After cloning, if there are changes made in the future, you can update your code by running (from within the project directory):
+```bash
+git pull
 ```
 
 ## Setting Up the Project
@@ -200,26 +245,6 @@ python main.py test-auth
 ```
 
 If that succeeds, you are ready to use the extract and import commands.
-
-## Setting Up a Salesforce External Client Application
-
-This script authenticates to Salesforce using an External Client Application with the Client Credentials flow.
-
-Use this guide for the Salesforce-side setup:
-
-<https://www.cyfunolabs.com/2025/11/18/calling-the-account-engagement-api-from-salesforce/>
-
-For this project, you only need to complete steps one and two from that guide.
-
-You will need these values when the script prompts you on first run:
-
-1. `SF_URL`: Your Salesforce My Domain URL, such as `https://yourorg.my.salesforce.com`
-2. `CLIENT_ID`: The External Client Application consumer key
-3. `CLIENT_SECRET`: The External Client Application consumer secret
-4. `PARDOT_BUSINESS_UNIT_ID`: Your MCAE business unit ID
-5. `PARDOT_ORG_TYPE`: Usually `production`, but use `sandbox` or `demo` if that matches your environment
-
-The first time you run the script, it will ask for those values and store them in a local `.env` file.
 
 ## Getting Help
 
