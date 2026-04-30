@@ -1,4 +1,5 @@
 import csv
+import json
 import sys
 import time
 from pathlib import Path
@@ -6,10 +7,61 @@ from pathlib import Path
 CSV_FILENAME = 'email_templates.csv'
 CSV_FIELDNAMES = [
     'id', 'name', 'subject', 'campaign_name',
-    'ready_to_update', 'html_file_path', 'text_file_path', 'update_status',
+    'createdAt', 'updatedAt',
+    'ready_to_update', 'update_status', 'html_file_path', 'text_file_path',
 ]
 
 _READY_VALUES = {'yes', 'true', '1'}
+
+BACKUP_FILENAME = 'template-metadata-backup.json'
+
+# Full metadata backup fields requested for import safety.
+BACKUP_FIELDS = [
+    'id',
+    'name',
+    'isOneToOneEmail',
+    'isDeleted',
+    'isAutoResponderEmail',
+    'isDripEmail',
+    'isListEmail',
+    'replyToOptions.type',
+    'replyToOptions.address',
+    'replyToOptions.userId',
+    'replyToOptions.prospectCustomFieldId',
+    'replyToOptions.accountCustomFieldId',
+    'senderOptions.type',
+    'senderOptions.address',
+    'senderOptions.name',
+    'senderOptions.userId',
+    'senderOptions.prospectCustomFieldId',
+    'senderOptions.accountCustomFieldId',
+    'subject',
+    'type',
+    'createdAt',
+    'updatedAt',
+    'createdById',
+    'updatedById',
+    'trackerDomainId',
+    'campaignId',
+    'folderId',
+    'tagReplacementLanguage',
+]
+
+# Writable template fields we can safely preserve during PATCH.
+PATCH_PASSTHROUGH_FIELDS = [
+    'name',
+    'isOneToOneEmail',
+    'isAutoResponderEmail',
+    'isDripEmail',
+    'isListEmail',
+    'replyToOptions',
+    'senderOptions',
+    'subject',
+    'type',
+    'trackerDomainId',
+    'campaignId',
+    'folderId',
+]
 
 
 def _read_csv(csv_path) -> list:
@@ -22,6 +74,17 @@ def _write_csv(rows: list, csv_path) -> None:
         writer = csv.DictWriter(f, fieldnames=CSV_FIELDNAMES)
         writer.writeheader()
         writer.writerows(rows)
+
+
+def _build_patch_payload(metadata: dict, html_content: str, txt_content: str) -> dict:
+    payload = {
+        'htmlMessage': html_content,
+        'textMessage': txt_content,
+    }
+    for key in PATCH_PASSTHROUGH_FIELDS:
+        if key in metadata and metadata[key] is not None:
+            payload[key] = metadata[key]
+    return payload
 
 
 def run_import(client, working_dir: str = None) -> None:
@@ -84,13 +147,17 @@ def run_import(client, working_dir: str = None) -> None:
             try:
                 current = client.get(
                     f'email-templates/{tmpl_id}',
-                    {'fields': 'id,htmlMessage,textMessage'},
+                    {'fields': ','.join(BACKUP_FIELDS + ['htmlMessage', 'textMessage'])},
                 )
                 (backup_dir / 'content-backup.html').write_text(
                     current.get('htmlMessage') or '', encoding='utf-8'
                 )
                 (backup_dir / 'content-backup.txt').write_text(
                     current.get('textMessage') or '', encoding='utf-8'
+                )
+                (backup_dir / BACKUP_FILENAME).write_text(
+                    json.dumps(current, indent=2, sort_keys=True),
+                    encoding='utf-8',
                 )
             except Exception as exc:
                 row['update_status'] = f'Error: backup failed: {exc}'
@@ -104,9 +171,10 @@ def run_import(client, working_dir: str = None) -> None:
             try:
                 html_content = Path(html_path).read_text(encoding='utf-8')
                 txt_content = Path(txt_path).read_text(encoding='utf-8')
+                payload = _build_patch_payload(current, html_content, txt_content)
                 client.patch(
                     f'email-templates/{tmpl_id}',
-                    {'htmlMessage': html_content, 'textMessage': txt_content},
+                    payload,
                 )
                 row['update_status'] = 'Success'
                 updated += 1
