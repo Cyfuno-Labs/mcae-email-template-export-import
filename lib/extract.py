@@ -8,7 +8,8 @@ from pathlib import Path
 CSV_FILENAME = 'email_templates.csv'
 CSV_FIELDNAMES = [
     'id', 'name', 'subject', 'campaign_name',
-    'ready_to_update', 'html_file_path', 'text_file_path', 'update_status',
+    'createdAt', 'updatedAt',
+    'ready_to_update', 'update_status', 'html_file_path', 'text_file_path',
 ]
 
 
@@ -27,7 +28,7 @@ def run_extract(client, filter_name=None, filter_campaign=None, filter_tags=None
     # ------------------------------------------------------------------ #
     print('Querying email templates...')
     all_templates = client.get_all('email-templates', {
-        'fields': 'id,name,subject,campaignId,campaign.name',
+        'fields': 'id,name,subject,createdAt,updatedAt,campaignId,campaign.name',
     })
 
     # ------------------------------------------------------------------ #
@@ -157,6 +158,8 @@ def run_extract(client, filter_name=None, filter_campaign=None, filter_tags=None
             'name': email_name,
             'subject': (tmpl.get('subject') or ''),
             'campaign_name': campaign_name,
+            'createdAt': (tmpl.get('createdAt') or ''),
+            'updatedAt': (tmpl.get('updatedAt') or ''),
             'ready_to_update': 'No',
             'html_file_path': str(template_dir / 'content-updated.html'),
             'text_file_path': str(template_dir / 'content-updated.txt'),
