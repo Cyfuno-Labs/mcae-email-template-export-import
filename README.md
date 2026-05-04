@@ -14,7 +14,7 @@ The script is designed to be run from a terminal, but the workflow is intentiona
 5. Mark the rows you want to update in the spreadsheet.
 6. Run the import.
 
-If you have not installed Python or set up the project yet, jump to [Setup](#setup).
+If you have not installed python3 or set up the project yet, jump to [Setup](#setup).
 
 ## Running the Script
 
@@ -23,9 +23,9 @@ All commands below assume you are already inside the project folder in a termina
 If you want to see the available commands or options at any time, use:
 
 ```powershell
-python main.py --help
-python main.py extract --help
-python main.py import --help
+python3 main.py --help
+python3 main.py extract --help
+python3 main.py import --help
 ```
 
 On the first run, the script will create a `.env` file from `.env-sample`, prompt you for your Salesforce and MCAE values, save them, and stop. That is expected. Run the same command a second time after the prompts are complete.
@@ -39,7 +39,7 @@ Before running this command, complete [Setting Up a Salesforce External Client A
 Example command:
 
 ```powershell
-python main.py test-auth
+python3 main.py test-auth
 ```
 
 What this command checks:
@@ -62,10 +62,10 @@ Use the extract command to download email templates into a timestamped working f
 Example commands:
 
 ```powershell
-python main.py extract
-python main.py extract --name "Webinar"
-python main.py extract --campaign "Annual Customer Conference"
-python main.py extract --tags "invitations"
+python3 main.py extract
+python3 main.py extract --name "Webinar"
+python3 main.py extract --campaign "Annual Customer Conference"
+python3 main.py extract --tags "invitations"
 ```
 
 What to expect:
@@ -91,7 +91,7 @@ Before importing:
 Example command:
 
 ```powershell
-python main.py import --dir extract_20260413_202850
+python3 main.py import --dir extract_20260413_202850
 ```
 
 What the import does:
@@ -134,19 +134,19 @@ You will need these values when the script prompts you on first run:
 
 The first time you run the script, it will ask for those values and store them in a local `.env` file.
 
-## Installing Python on Mac and Windows
+## Installing python3 on Mac and Windows
 
-This project requires Python 3. If you do not already have it installed, use one of these approaches.
+This project requires python3 3. If you do not already have it installed, use one of these approaches.
 
 ### Windows
 
-1. Go to the Python downloads page: <https://www.python.org/downloads/windows/>
-2. Install a current Python 3 release.
-3. During installation, make sure `Add Python to PATH` is selected.
+1. Go to the python3 downloads page: <https://www.python.org/downloads/windows/>
+2. Install a current python3 3 release.
+3. During installation, make sure `Add python3 to PATH` is selected.
 4. After installation, open PowerShell and run:
 
 ```powershell
-python --version
+python3 --version
 ```
 
 If that does not work, try:
@@ -157,15 +157,15 @@ py --version
 
 ### Mac
 
-1. Go to the Python downloads page: <https://www.python.org/downloads/macos/>
-2. Install a current Python 3 release.
+1. Go to the python3 downloads page: <https://www.python.org/downloads/macos/>
+2. Install a current python3 3 release.
 3. Open Terminal and run:
 
 ```bash
 python3 --version
 ```
 
-If your Mac already has Python, make sure the command returns Python 3, not Python 2.
+If your Mac already has Python, make sure the command returns python3 3, not python3 2.
 
 ## Getting the Files from GitHub
 
@@ -210,9 +210,9 @@ Open a terminal in the project folder you downloaded from GitHub.
 Create a virtual environment and install the required packages:
 
 ```powershell
-python -m venv .venv
+python3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
-python -m pip install --upgrade pip
+python3 -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
@@ -241,7 +241,7 @@ After setup, you can go back to the commands in [Running the Script](#running-th
 As a quick verification step, run:
 
 ```powershell
-python main.py test-auth
+python3 main.py test-auth
 ```
 
 If that succeeds, you are ready to use the extract and import commands.
