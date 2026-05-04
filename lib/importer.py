@@ -101,6 +101,7 @@ def run_import(client, working_dir: str = None) -> None:
     ready_rows = [
         r for r in rows
         if r.get('ready_to_update', '').strip().lower() in _READY_VALUES
+        and not r.get('update_status', '').strip()
     ]
 
     if not ready_rows:
@@ -131,6 +132,8 @@ def run_import(client, working_dir: str = None) -> None:
     try:
         for row in rows:
             if row.get('ready_to_update', '').strip().lower() not in _READY_VALUES:
+                continue
+            if row.get('update_status', '').strip():
                 continue
 
             tmpl_id = row['id']
@@ -172,6 +175,9 @@ def run_import(client, working_dir: str = None) -> None:
                 html_content = Path(html_path).read_text(encoding='utf-8')
                 txt_content = Path(txt_path).read_text(encoding='utf-8')
                 payload = _build_patch_payload(current, html_content, txt_content)
+                csv_subject = row.get('subject', '').strip()
+                if csv_subject:
+                    payload['subject'] = csv_subject
                 client.patch(
                     f'email-templates/{tmpl_id}',
                     payload,
