@@ -66,7 +66,14 @@ python3 main.py extract
 python3 main.py extract --name "Webinar"
 python3 main.py extract --campaign "Annual Customer Conference"
 python3 main.py extract --tags "invitations"
+python3 main.py extract --createdAtAfter
+python3 main.py extract --createdAtAfter "2026-05-02T15:50:00-04:00"
 ```
+
+Notes on `--createdAtAfter`:
+
+1. Use ISO-8601 with timezone offset, for example `2021-09-18T15:50:00-04:00`.
+2. If you pass `--createdAtAfter` with no value, it defaults to 30 days ago in your local timezone.
 
 What to expect:
 

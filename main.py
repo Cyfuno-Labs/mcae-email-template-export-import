@@ -13,6 +13,7 @@ prompts for each value, saves the file, then exits. Run again to proceed.
 import os
 import shutil
 import sys
+from datetime import datetime
 from pathlib import Path
 
 # Env keys and the human-readable prompts shown on first run.
@@ -23,6 +24,8 @@ _ENV_KEYS = [
     ('PARDOT_BUSINESS_UNIT_ID', 'Pardot Business Unit ID  (18-char string starting with 0Uv)'),
     ('PARDOT_ORG_TYPE',         'Pardot Org Type  [production / sandbox / demo]'),
 ]
+
+_CREATED_AT_AFTER_DEFAULT = '__DEFAULT_CREATED_AT_AFTER_30_DAYS__'
 
 
 def _get_required_env_value(key: str) -> str:
@@ -149,6 +152,17 @@ def _build_parser():
         metavar='TAG1,TAG2',
         help='Filter templates tagged with ALL of the given tags (comma-separated, exact match).',
     )
+    extract_parser.add_argument(
+        '--createdAtAfter',
+        nargs='?',
+        const=_CREATED_AT_AFTER_DEFAULT,
+        metavar='DATETIME',
+        help=(
+            'Filter templates created after DATETIME in ISO-8601 format '
+            '(e.g. 2021-09-18T15:50:00-04:00). If provided without a value, '
+            'defaults to 30 days ago in local time.'
+        ),
+    )
 
     import_parser = subparsers.add_parser(
         'import',
@@ -186,6 +200,30 @@ def main() -> None:
     if args.command == 'test-auth':
         _run_test_auth()
     elif args.command == 'extract':
+        created_at_after = args.createdAtAfter
+        prompt_created_at_after = False
+        if created_at_after == _CREATED_AT_AFTER_DEFAULT:
+            prompt_created_at_after = True
+            created_at_after = None
+        elif created_at_after:
+            try:
+                parsed = datetime.fromisoformat(created_at_after)
+            except ValueError:
+                print(
+                    'Error: --createdAtAfter must be in ISO-8601 format like '
+                    '2021-09-18T15:50:00-04:00'
+                )
+                sys.exit(1)
+
+            if parsed.tzinfo is None:
+                print(
+                    'Error: --createdAtAfter must include a timezone offset like '
+                    '2021-09-18T15:50:00-04:00'
+                )
+                sys.exit(1)
+
+            created_at_after = parsed.isoformat(timespec='seconds')
+
         try:
             client, _, _ = _build_pardot_client()
         except ValueError as exc:
@@ -201,6 +239,8 @@ def main() -> None:
             filter_name=args.name,
             filter_campaign=args.campaign,
             filter_tags=args.tags,
+            filter_created_at_after=created_at_after,
+            prompt_created_at_after=prompt_created_at_after,
         )
     elif args.command == 'import':
         try:

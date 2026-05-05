@@ -2,7 +2,7 @@ import csv
 import re
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 
 CSV_FILENAME = 'email_templates.csv'
@@ -19,17 +19,38 @@ def _sanitize_dirname(name: str) -> str:
     return sanitized[:100] or 'unnamed'
 
 
-def run_extract(client, filter_name=None, filter_campaign=None, filter_tags=None):
+def run_extract(
+    client,
+    filter_name=None,
+    filter_campaign=None,
+    filter_tags=None,
+    filter_created_at_after=None,
+    prompt_created_at_after=False,
+):
     start_time = time.time()
+
+    # ------------------------------------------------------------------ #
+    # Optional: prompt for createdAtAfter date filter                     #
+    # ------------------------------------------------------------------ #
+    if prompt_created_at_after:
+        default_dt = (
+            datetime.now().astimezone() - timedelta(days=30)
+        ).isoformat(timespec='seconds')
+        raw = input(f'Created after date [{default_dt}]: ').strip()
+        filter_created_at_after = raw if raw else default_dt
 
     # ------------------------------------------------------------------ #
     # Step 1: Query all email templates (htmlMessage/textMessage are not  #
     # queryable, so we only fetch relational fields here).                #
     # ------------------------------------------------------------------ #
     print('Querying email templates...')
-    all_templates = client.get_all('email-templates', {
+    query_params = {
         'fields': 'id,name,subject,createdAt,updatedAt,campaignId,campaign.name',
-    })
+    }
+    if filter_created_at_after:
+        query_params['createdAtAfter'] = filter_created_at_after
+
+    all_templates = client.get_all('email-templates', query_params)
 
     # ------------------------------------------------------------------ #
     # Step 2: Apply client-side filters                                   #
@@ -85,21 +106,22 @@ def run_extract(client, filter_name=None, filter_campaign=None, filter_tags=None
         print('No email templates found matching the specified filters.')
         return
 
-    active_filters = sum(1 for f in [filter_name, filter_campaign, filter_tags] if f)
+    active_filter_lines = []
+    if filter_name:
+        active_filter_lines.append(f'  name contains   : {filter_name}')
+    if filter_campaign:
+        active_filter_lines.append(f'  campaign        : {filter_campaign}')
+    if filter_tags:
+        active_filter_lines.append(f'  tags            : {filter_tags}')
+    if filter_created_at_after:
+        active_filter_lines.append(f'  created after   : {filter_created_at_after}')
 
-    if filter_tags and active_filters == 1:
-        prompt = (
-            f'We found {found_tag_count} tag(s) with {len(templates)} email template(s). '
-            f'Proceed? (y/N): '
-        )
-    elif filter_campaign and active_filters == 1:
-        campaign_names = {((t.get('campaign') or {}).get('name') or '') for t in templates}
-        prompt = (
-            f'We found {len(campaign_names)} campaign(s) with {len(templates)} email template(s). '
-            f'Proceed? (y/N): '
-        )
-    else:
-        prompt = f'We found {len(templates)} email template(s). Proceed? (y/N): '
+    if active_filter_lines:
+        print('Active filters:')
+        for line in active_filter_lines:
+            print(line)
+
+    prompt = f'We found {len(templates)} email template(s). Proceed? (y/N): '
 
     answer = input(prompt).strip().lower()
     if answer not in ('y', 'yes'):
