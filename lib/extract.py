@@ -12,6 +12,17 @@ CSV_FIELDNAMES = [
     'ready_to_update', 'update_status', 'html_file_path', 'text_file_path',
 ]
 
+_DISALLOWED_SENDER_OPTION_TYPES = {'prospect_custom_field'}
+
+
+def _get_sender_option_types(template_detail: dict) -> list[str]:
+    return [
+        option_type
+        for option in (template_detail.get('senderOptions') or [])
+        for option_type in [(option or {}).get('type')]
+        if option_type
+    ]
+
 
 def _sanitize_dirname(name: str) -> str:
     """Replace characters that are invalid in directory names (Windows-safe)."""
@@ -162,10 +173,16 @@ def run_extract(
 
         detail = client.get(
             f'email-templates/{tmpl_id}',
-            {'fields': 'id,htmlMessage,textMessage'},
+            {'fields': 'id,htmlMessage,textMessage,senderOptions.type'},
         )
         html_message = detail.get('htmlMessage') or ''
         text_message = detail.get('textMessage') or ''
+        sender_option_types = _get_sender_option_types(detail)
+        ready_to_update = (
+            'Unable - CustomFieldSender'
+            if any(option_type in _DISALLOWED_SENDER_OPTION_TYPES for option_type in sender_option_types)
+            else 'No'
+        )
 
         template_dir = working_dir / _sanitize_dirname(campaign_name) / _sanitize_dirname(email_name)
         template_dir.mkdir(parents=True, exist_ok=True)
@@ -182,7 +199,7 @@ def run_extract(
             'campaign_name': campaign_name,
             'createdAt': (tmpl.get('createdAt') or ''),
             'updatedAt': (tmpl.get('updatedAt') or ''),
-            'ready_to_update': 'No',
+            'ready_to_update': ready_to_update,
             'html_file_path': str(template_dir / 'content-updated.html'),
             'text_file_path': str(template_dir / 'content-updated.txt'),
             'update_status': '',

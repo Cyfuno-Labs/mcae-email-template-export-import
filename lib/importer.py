@@ -12,6 +12,7 @@ CSV_FIELDNAMES = [
 ]
 
 _READY_VALUES = {'yes', 'true', '1'}
+_DISALLOWED_SENDER_OPTION_TYPES = {'prospect_custom_field'}
 
 BACKUP_FILENAME = 'template-metadata-backup.json'
 
@@ -85,6 +86,15 @@ def _build_patch_payload(metadata: dict, html_content: str, txt_content: str) ->
         if key in metadata and metadata[key] is not None:
             payload[key] = metadata[key]
     return payload
+
+
+def _get_sender_option_types(metadata: dict) -> list[str]:
+    return [
+        option_type
+        for option in (metadata.get('senderOptions') or [])
+        for option_type in [(option or {}).get('type')]
+        if option_type
+    ]
 
 
 def run_import(client, working_dir: str = None) -> None:
@@ -167,6 +177,15 @@ def run_import(client, working_dir: str = None) -> None:
                 print(f'    Error (backup): {exc}')
                 abort = True
                 break
+
+            sender_option_types = _get_sender_option_types(current)
+            if any(option_type in _DISALLOWED_SENDER_OPTION_TYPES for option_type in sender_option_types):
+                row['ready_to_update'] = 'Unable - CustomFieldSender'
+                row['update_status'] = (
+                    'Skipped: senderOptions.type prospect_custom_field requires manual update'
+                )
+                print('    Skipped: senderOptions.type prospect_custom_field requires manual update.')
+                continue
 
             # ---------------------------------------------------------- #
             # Step 2: Read local files and PATCH the template.            #
