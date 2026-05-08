@@ -15,12 +15,17 @@ CSV_FIELDNAMES = [
 _DISALLOWED_SENDER_OPTION_TYPES = {'prospect_custom_field'}
 
 
-def _get_sender_option_types(template_detail: dict) -> list[str]:
+def _get_disallowed_option_types(template_detail: dict) -> list[str]:
+    """Return all option types from senderOptions and replyToOptions that are disallowed."""
+    all_options = (
+        (template_detail.get('senderOptions') or []) +
+        (template_detail.get('replyToOptions') or [])
+    )
     return [
         option_type
-        for option in (template_detail.get('senderOptions') or [])
+        for option in all_options
         for option_type in [(option or {}).get('type')]
-        if option_type
+        if option_type and option_type in _DISALLOWED_SENDER_OPTION_TYPES
     ]
 
 
@@ -173,16 +178,12 @@ def run_extract(
 
         detail = client.get(
             f'email-templates/{tmpl_id}',
-            {'fields': 'id,htmlMessage,textMessage,senderOptions.type'},
+            {'fields': 'id,htmlMessage,textMessage,senderOptions.type,replyToOptions.type'},
         )
         html_message = detail.get('htmlMessage') or ''
         text_message = detail.get('textMessage') or ''
-        sender_option_types = _get_sender_option_types(detail)
-        ready_to_update = (
-            'Unable - CustomFieldSender'
-            if any(option_type in _DISALLOWED_SENDER_OPTION_TYPES for option_type in sender_option_types)
-            else 'No'
-        )
+        disallowed_types = _get_disallowed_option_types(detail)
+        ready_to_update = 'Unable - CustomFieldSender' if disallowed_types else 'No'
 
         template_dir = working_dir / _sanitize_dirname(campaign_name) / _sanitize_dirname(email_name)
         template_dir.mkdir(parents=True, exist_ok=True)

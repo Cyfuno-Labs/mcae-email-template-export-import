@@ -92,8 +92,9 @@ Use the import command after you have finished editing the exported files.
 Before importing:
 
 1. Open `email_templates.csv` in Excel or another spreadsheet tool.
-2. In the `ready_to_update` column, set the rows you want to upload to `Yes`.
-3. Make sure the file paths in `html_file_path` and `text_file_path` still point to the edited files.
+2. Review the `ready_to_update` column first. Rows marked `Unable` use sender options that MCAE does not allow the API to update and must be handled manually.
+3. In the `ready_to_update` column, set the rows you want to upload to `Yes`.
+4. Make sure the file paths in `html_file_path` and `text_file_path` still point to the edited files.
 
 Example command:
 
@@ -106,8 +107,9 @@ What the import does:
 1. Reads `email_templates.csv` from the folder you pass with `--dir`.
 2. Checks that each referenced updated file exists.
 3. Downloads a fresh backup of the current MCAE content before changing anything.
-4. Uploads the updated HTML and text content for rows marked `Yes`.
-5. Writes the result back into the `update_status` column in the spreadsheet.
+4. Skips rows whose current backup metadata shows a disallowed `senderOptions.type` such as `prospect_custom_field`, even if the spreadsheet was manually changed to `Yes`.
+5. Uploads the updated HTML and text content for the remaining rows marked `Yes`.
+6. Writes the result back into the `update_status` column in the spreadsheet.
 
 If an update fails, the script stops immediately after recording the error in the CSV.
 

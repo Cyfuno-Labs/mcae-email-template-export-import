@@ -88,12 +88,17 @@ def _build_patch_payload(metadata: dict, html_content: str, txt_content: str) ->
     return payload
 
 
-def _get_sender_option_types(metadata: dict) -> list[str]:
+def _get_disallowed_option_types(metadata: dict) -> list[str]:
+    """Return all option types from senderOptions and replyToOptions that are disallowed."""
+    all_options = (
+        (metadata.get('senderOptions') or []) +
+        (metadata.get('replyToOptions') or [])
+    )
     return [
         option_type
-        for option in (metadata.get('senderOptions') or [])
+        for option in all_options
         for option_type in [(option or {}).get('type')]
-        if option_type
+        if option_type and option_type in _DISALLOWED_SENDER_OPTION_TYPES
     ]
 
 
@@ -178,8 +183,8 @@ def run_import(client, working_dir: str = None) -> None:
                 abort = True
                 break
 
-            sender_option_types = _get_sender_option_types(current)
-            if any(option_type in _DISALLOWED_SENDER_OPTION_TYPES for option_type in sender_option_types):
+            disallowed_types = _get_disallowed_option_types(current)
+            if disallowed_types:
                 row['ready_to_update'] = 'Unable - CustomFieldSender'
                 row['update_status'] = (
                     'Skipped: senderOptions.type prospect_custom_field requires manual update'
