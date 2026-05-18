@@ -36,10 +36,10 @@ After the import is done (either success or failure), print some stats to the sc
 /[working directory]/[campaign name]/[email name]/
 
 Within each directory, there will be multiple files.
-- content-original.html: populated from the `htmlMessage` property
-- content-updated.html: populated from the `htmlMessage` property (file to be replaced by the user for upload purposes)
-- content-original.txt: populated from the `textMessage` property
-- content-updated.txt: populated from the `textMessage` property (file to be replaced by the user for upload purposes)
+- <template-id>-content-original.html: populated from the `htmlMessage` property
+- <template-id>-content-updated.html: populated from the `htmlMessage` property (file to be replaced by the user for upload purposes)
+- <template-id>-content-original.txt: populated from the `textMessage` property
+- <template-id>-content-updated.txt: populated from the `textMessage` property (file to be replaced by the user for upload purposes)
 
 ### Environment Variables
 - Salesforce MyDomain
