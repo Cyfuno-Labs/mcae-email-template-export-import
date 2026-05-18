@@ -57,7 +57,7 @@ Use the extract command to download email templates into a timestamped working f
 
 1. An `email_templates.csv` spreadsheet.
 2. One folder per campaign and email.
-3. Paired `content-original` and `content-updated` files for HTML and text.
+3. Paired `<template-id>-content-original` and `<template-id>-content-updated` files for HTML and text.
 
 Example commands:
 
@@ -83,7 +83,7 @@ What to expect:
 4. It creates a working directory such as `extract_20260413_202850`.
 5. It writes both original and editable copies of each template.
 
-After the extract finishes, update the files named `content-updated.html` and `content-updated.txt`. Leave the `content-original` files alone so you always have a reference copy.
+After the extract finishes, update the files named `<template-id>-content-updated.html` and `<template-id>-content-updated.txt`. Leave the `<template-id>-content-original` files alone so you always have a reference copy.
 
 ### Working with the Import Script
 
