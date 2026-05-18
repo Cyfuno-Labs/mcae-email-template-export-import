@@ -35,6 +35,11 @@ def _sanitize_dirname(name: str) -> str:
     return sanitized[:100] or 'unnamed'
 
 
+def _content_filename(template_id: str, content_kind: str, extension: str) -> str:
+    """Build content file names as <id>-content-<type>.<ext>."""
+    return f'{template_id}-content-{content_kind}.{extension}'
+
+
 def run_extract(
     client,
     filter_name=None,
@@ -188,10 +193,15 @@ def run_extract(
         template_dir = working_dir / _sanitize_dirname(campaign_name) / _sanitize_dirname(email_name)
         template_dir.mkdir(parents=True, exist_ok=True)
 
-        (template_dir / 'content-original.html').write_text(html_message, encoding='utf-8')
-        (template_dir / 'content-updated.html').write_text(html_message, encoding='utf-8')
-        (template_dir / 'content-original.txt').write_text(text_message, encoding='utf-8')
-        (template_dir / 'content-updated.txt').write_text(text_message, encoding='utf-8')
+        original_html_file = _content_filename(tmpl_id, 'original', 'html')
+        updated_html_file = _content_filename(tmpl_id, 'updated', 'html')
+        original_text_file = _content_filename(tmpl_id, 'original', 'txt')
+        updated_text_file = _content_filename(tmpl_id, 'updated', 'txt')
+
+        (template_dir / original_html_file).write_text(html_message, encoding='utf-8')
+        (template_dir / updated_html_file).write_text(html_message, encoding='utf-8')
+        (template_dir / original_text_file).write_text(text_message, encoding='utf-8')
+        (template_dir / updated_text_file).write_text(text_message, encoding='utf-8')
 
         rows.append({
             'id': tmpl_id,
@@ -201,8 +211,8 @@ def run_extract(
             'createdAt': (tmpl.get('createdAt') or ''),
             'updatedAt': (tmpl.get('updatedAt') or ''),
             'ready_to_update': ready_to_update,
-            'html_file_path': str(template_dir / 'content-updated.html'),
-            'text_file_path': str(template_dir / 'content-updated.txt'),
+            'html_file_path': str(template_dir / updated_html_file),
+            'text_file_path': str(template_dir / updated_text_file),
             'update_status': '',
         })
 
