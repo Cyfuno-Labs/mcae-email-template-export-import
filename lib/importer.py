@@ -6,15 +6,17 @@ from pathlib import Path
 
 CSV_FILENAME = 'email_templates.csv'
 CSV_FIELDNAMES = [
-    'id', 'name', 'subject', 'campaign_name',
+    'id', 'name', 'subject', 'sender_address', 'sender_name', 'campaign_name',
     'createdAt', 'updatedAt',
     'ready_to_update', 'update_status', 'html_file_path', 'text_file_path',
 ]
 
 _READY_VALUES = {'yes', 'true', '1'}
 _DISALLOWED_SENDER_OPTION_TYPES = {'prospect_custom_field'}
+_EDITABLE_SENDER_OPTION_TYPE = 'general_user'
 
-BACKUP_FILENAME = 'template-metadata-backup.json'
+BACKUP_FILENAME = 'backup.json'
+UPDATE_FILENAME = 'update.json'
 
 # Full metadata backup fields requested for import safety.
 BACKUP_FIELDS = [
@@ -86,6 +88,36 @@ def _build_patch_payload(metadata: dict, html_content: str, txt_content: str) ->
         if key in metadata and metadata[key] is not None:
             payload[key] = metadata[key]
     return payload
+
+
+def _apply_sender_overrides(payload: dict, row: dict) -> str:
+    """Apply the CSV sender_address/sender_name to the general_user sender option.
+
+    Only general_user sender options carry an editable address and name. Returns an
+    error message when the CSV asks for a change that cannot be applied, else ''.
+    """
+    csv_address = row['sender_address'].strip()
+    csv_name = row['sender_name'].strip()
+    if not csv_address and not csv_name:
+        return ''
+
+    options = [dict(option or {}) for option in (payload.get('senderOptions') or [])]
+    target = next(
+        (o for o in options if o.get('type') == _EDITABLE_SENDER_OPTION_TYPE),
+        None,
+    )
+    if target is None:
+        return (
+            'sender_address/sender_name set but no senderOptions.type '
+            f'{_EDITABLE_SENDER_OPTION_TYPE} to apply them to'
+        )
+
+    if csv_address:
+        target['address'] = csv_address
+    if csv_name:
+        target['name'] = csv_name
+    payload['senderOptions'] = options
+    return ''
 
 
 def _get_disallowed_option_types(metadata: dict) -> list[str]:
@@ -202,6 +234,15 @@ def run_import(client, working_dir: str = None) -> None:
                 csv_subject = row.get('subject', '').strip()
                 if csv_subject:
                     payload['subject'] = csv_subject
+                sender_error = _apply_sender_overrides(payload, row)
+                if sender_error:
+                    row['update_status'] = f'Skipped: {sender_error}'
+                    print(f'    Skipped: {sender_error}.')
+                    continue
+                (backup_dir / UPDATE_FILENAME).write_text(
+                    json.dumps(payload, indent=2, sort_keys=True),
+                    encoding='utf-8',
+                )
                 client.patch(
                     f'email-templates/{tmpl_id}',
                     payload,

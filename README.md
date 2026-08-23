@@ -95,6 +95,7 @@ Before importing:
 2. Review the `ready_to_update` column first. Rows marked `Unable` use sender options that MCAE does not allow the API to update and must be handled manually.
 3. In the `ready_to_update` column, set the rows you want to upload to `Yes`.
 4. Make sure the file paths in `html_file_path` and `text_file_path` still point to the edited files.
+5. Optionally edit `sender_address` and `sender_name`. These are only filled in for templates whose sender option type is `general_user`, which is the only type where the address and name can be changed through the API. Leave a cell blank to keep the current value.
 
 Example command:
 
@@ -106,10 +107,11 @@ What the import does:
 
 1. Reads `email_templates.csv` from the folder you pass with `--dir`.
 2. Checks that each referenced updated file exists.
-3. Downloads a fresh backup of the current MCAE content before changing anything.
+3. Downloads a fresh backup of the current MCAE content before changing anything. Each template folder gets `backup.json` with the metadata read from MCAE and `update.json` with the exact payload sent to MCAE, next to the HTML and text files.
 4. Skips rows whose current backup metadata shows a disallowed `senderOptions.type` such as `prospect_custom_field`, even if the spreadsheet was manually changed to `Yes`.
 5. Uploads the updated HTML and text content for the remaining rows marked `Yes`.
-6. Writes the result back into the `update_status` column in the spreadsheet.
+6. Applies `sender_address` and `sender_name` to the `general_user` sender option when either cell has a value. A row that fills in those cells but has no `general_user` sender option is skipped and the reason is recorded.
+7. Writes the result back into the `update_status` column in the spreadsheet.
 
 If an update fails, the script stops immediately after recording the error in the CSV.
 

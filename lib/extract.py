@@ -7,12 +7,13 @@ from pathlib import Path
 
 CSV_FILENAME = 'email_templates.csv'
 CSV_FIELDNAMES = [
-    'id', 'name', 'subject', 'campaign_name',
+    'id', 'name', 'subject', 'sender_address', 'sender_name', 'campaign_name',
     'createdAt', 'updatedAt',
     'ready_to_update', 'update_status', 'html_file_path', 'text_file_path',
 ]
 
 _DISALLOWED_SENDER_OPTION_TYPES = {'prospect_custom_field'}
+_EDITABLE_SENDER_OPTION_TYPE = 'general_user'
 
 
 def _get_disallowed_option_types(template_detail: dict) -> list[str]:
@@ -27,6 +28,14 @@ def _get_disallowed_option_types(template_detail: dict) -> list[str]:
         for option_type in [(option or {}).get('type')]
         if option_type and option_type in _DISALLOWED_SENDER_OPTION_TYPES
     ]
+
+
+def _get_editable_sender_option(template_detail: dict) -> dict:
+    """Return the first general_user sender option, which is the only editable kind."""
+    for option in (template_detail.get('senderOptions') or []):
+        if (option or {}).get('type') == _EDITABLE_SENDER_OPTION_TYPE:
+            return option
+    return {}
 
 
 def _sanitize_dirname(name: str) -> str:
@@ -183,12 +192,19 @@ def run_extract(
 
         detail = client.get(
             f'email-templates/{tmpl_id}',
-            {'fields': 'id,htmlMessage,textMessage,senderOptions.type,replyToOptions.type'},
+            {
+                'fields': (
+                    'id,htmlMessage,textMessage,'
+                    'senderOptions.type,senderOptions.address,senderOptions.name,'
+                    'replyToOptions.type'
+                ),
+            },
         )
         html_message = detail.get('htmlMessage') or ''
         text_message = detail.get('textMessage') or ''
         disallowed_types = _get_disallowed_option_types(detail)
         ready_to_update = 'Unable - CustomFieldSender' if disallowed_types else 'No'
+        sender_option = _get_editable_sender_option(detail)
 
         template_dir = working_dir / _sanitize_dirname(campaign_name) / _sanitize_dirname(email_name)
         template_dir.mkdir(parents=True, exist_ok=True)
@@ -207,6 +223,8 @@ def run_extract(
             'id': tmpl_id,
             'name': email_name,
             'subject': (tmpl.get('subject') or ''),
+            'sender_address': (sender_option.get('address') or ''),
+            'sender_name': (sender_option.get('name') or ''),
             'campaign_name': campaign_name,
             'createdAt': (tmpl.get('createdAt') or ''),
             'updatedAt': (tmpl.get('updatedAt') or ''),
